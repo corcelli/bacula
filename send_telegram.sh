@@ -1,5 +1,14 @@
 #!/bin/bash
-# Config
+
+#==============================================
+# Send message jobs to telegram bot
+# Author:  Wanderlei HÃ¼ttel
+# Email:   wanderlei.huttel@gmail.com
+# Version: 1.4 - 19/02/2020
+#==============================================
+
+#==============================================
+# Config 
 bconsole=$(which bconsole)
 curl=$(which curl)
 bc=$(which bc)
@@ -12,12 +21,14 @@ debug=0 # 0-Disable debug messages / 1-Enable debug messages
 # Use @BotFather to create a bot an get the API token
 # Send a message to the Bot @userinfobot to get your id
 # Or send a message to a bot created and
-# Open in browser the url https://api.telegram.org/bot${api_token}/getUpdates
+# Open in browser the url https://api.telegram.org/bot${api_token}/getUpdates 
 # and get the value of id of user where the message line is.
 
-api_token="TOKEN_AQUI"
-id="ID_AQUI"
+api_token="  "
+id="  "
 log="/var/log/bacula/telegram.log"
+
+
 
 #==============================================
 # Function to convert bytes for human readable
@@ -55,13 +66,13 @@ message_debug "Debug: id - '${id}'"
 
 #==============================================
 # SQL query to get data from Job (MySQL)
-query_mysql="select Job.Name, Job.JobId,(select Client.Name from Client where Client.ClientId = Job.ClientId) as Client, Job.JobBytes, Job.JobFiles, case when Job.Level = 'F' then 'Full' when Job.Level = 'I' then 'Incremental' when Job.$
+query_mysql="select Job.Name, Job.JobId,(select Client.Name from Client where Client.ClientId = Job.ClientId) as Client, Job.JobBytes, Job.JobFiles, case when Job.Level = 'F' then 'Full' when Job.Level = 'I' then 'Incremental' when Job.Level = 'D' then 'Differential' end as Level, (select Pool.Name from Pool where Pool.PoolId = Job.PoolId) as Pool, (select Storage.Name  from JobMedia left join Media on (Media.MediaId = JobMedia.MediaId) left join Storage on (Media.StorageId = Storage.StorageId) where JobMedia.JobId = Job.JobId limit 1 ) as Storage, date_format( Job.StartTime , '%d/%m/%Y %H:%i:%s' ) as StartTime, date_format( Job.EndTime , '%d/%m/%Y %H:%i:%s' ) as EndTime, sec_to_time(TIMESTAMPDIFF(SECOND,Job.StartTime,Job.EndTime)) as Duration, Job.JobStatus, (select Status.JobStatusLong from Status where Job.JobStatus = Status.JobStatus) as JobStatusLong from Job where Job.JobId=$1;"
 message_debug "Debug: query_mysql - '${query_mysql}'"
 
 
 #==============================================
 # SQL query to get data from Job (PostgreSQL)
-query_pgsql="select Job.Name, Job.JobId,(select Client.Name from Client where Client.ClientId = Job.ClientId) as Client, Job.JobBytes, Job.JobFiles, case when Job.Level = 'F' then 'Full' when Job.Level = 'I' then 'Incremental' when Job.$
+query_pgsql="select Job.Name, Job.JobId,(select Client.Name from Client where Client.ClientId = Job.ClientId) as Client, Job.JobBytes, Job.JobFiles, case when Job.Level = 'F' then 'Full' when Job.Level = 'I' then 'Incremental' when Job.Level = 'D' then 'Differential' end as Level, (select Pool.Name from Pool where Pool.PoolId = Job.PoolId) as Pool, (select Storage.Name from JobMedia left join Media on (Media.MediaId = JobMedia.MediaId) left join Storage on (Media.StorageId = Storage.StorageId) where JobMedia.JobId = Job.JobId limit 1 ) as Storage, to_char(Job.StartTime, 'DD/MM/YY HH24:MI:SS') as StartTime, to_char(Job.EndTime, 'DD/MM/YY HH24:MI:SS') as EndTime, to_char(endtime-starttime,'HH24:MI:SS') as Duration, Job.JobStatus, (select Status.JobStatusLong from Status where Job.JobStatus = Status.JobStatus) as JobStatusLong from Job where Job.JobId=$1;"
 message_debug "Debug: query_pgsql - '${query_pgsql}'"
 
 
@@ -89,6 +100,7 @@ exit
 EOF
 )"
 message_debug "Debug: var - '$(echo ${var} | ${bconsole})'"
+
 
 #==============================================
 # Execute SQL and get data from bconsole
@@ -118,15 +130,15 @@ message_debug "Debug: str - '${str}'"
 # http://emojipedia.org/floppy-disk/
 # Different header in case of error
 if [ "${JobStatus}" == "T" ] ; then
-   header=">   BACULA BACKUP   <<<<</n"  # OK
+   header="> ðŸ’¾ BACULA BACKUP âœ… <<<<</n"  # OK
 else
-   header=">   BACULA BACKUP   <<<<</n"  # Error
+   header="> ðŸ’¾ BACULA BACKUP âŒ <<<<</n"  # Error
 fi
 message_debug "Debug: header - '${header}'"
 
 #==============================================
 # Format output of message
-message="${header}/nJobName=${JobName}/nJobid=${JobId}/nClient=${Client}/nJobBytes=${JobBytes}/nJobFiles=${JobFiles}/nLevel=${Level}/nPool=${Pool}/nStorage=${Storage}/nStartTime=${StartTime}/nEndTime=${EndTime}/nDuration=${Duration}/nJo$
+message="${header}/nJobName=${JobName}/nJobid=${JobId}/nClient=${Client}/nJobBytes=${JobBytes}/nJobFiles=${JobFiles}/nLevel=${Level}/nPool=${Pool}/nStorage=${Storage}/nStartTime=${StartTime}/nEndTime=${EndTime}/nDuration=${Duration}/nJobStatus=${JobStatus}/nStatus=${Status}"
 messagelog="Message: JobName=${JobName} | Jobid=${JobId} | Client=${Client} | JobBytes=${JobBytes} | Level=${Level} | Status=${Status}"
 message=$(echo ${message} | sed 's/\/n/%0A/g')
 url="https://api.telegram.org/bot${api_token}/sendMessage?chat_id=${id}&text=${message}"
