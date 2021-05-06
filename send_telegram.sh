@@ -1,13 +1,5 @@
 #!/bin/bash
 
-#==============================================
-# Send message jobs to telegram bot
-# Author:  Wanderlei HÃ¼ttel
-# Email:   wanderlei.huttel@gmail.com
-# Version: 1.4 - 19/02/2020
-#==============================================
-
-#==============================================
 # Config 
 bconsole=$(which bconsole)
 curl=$(which curl)
@@ -130,9 +122,9 @@ message_debug "Debug: str - '${str}'"
 # http://emojipedia.org/floppy-disk/
 # Different header in case of error
 if [ "${JobStatus}" == "T" ] ; then
-   header="> ðŸ’¾ BACULA BACKUP âœ… <<<<</n"  # OK
+   header=">>>>> 💾 BACULA BACKUP ✅ <<<<</n"  # OK
 else
-   header="> ðŸ’¾ BACULA BACKUP âŒ <<<<</n"  # Error
+   header=">>>>> 💾 BACULA BACKUP ❌ <<<<</n"  # Error
 fi
 message_debug "Debug: header - '${header}'"
 
